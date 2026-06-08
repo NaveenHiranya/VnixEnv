@@ -1,127 +1,194 @@
 "use client";
 
-import { useState,useEffect } from "react";
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { IoSend } from "react-icons/io5";
-// import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
 import { BiLike, BiDislike } from "react-icons/bi";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");
-  const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<
-    { status: string; message: string }[]
-  >([]);
+  const [messages, setMessages] = useState<{ status: string; message: string }[]>([]);
 
-  //scroll controller
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   };
+
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, loading]);
 
-  //gemini api call
+  useEffect(() => {
+    if (prompt === "" && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  }, [prompt]);
+
   const askGemini = async () => {
-    if (prompt != "") {
-      setLoading(false);
-      setPrompt("");
-      setMessages((messages) => [
-        ...messages,
-        { status: "user", message: prompt },
-      ]);
+    if (!prompt.trim()) return;
+
+    const currentPrompt = prompt;
+
+    setLoading(false);
+    setPrompt("");
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        status: "user",
+        message: currentPrompt,
+      },
+    ]);
+
+    const combinedPrompt = `${currentPrompt}`;
+
+    try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt: combinedPrompt,
+        }),
       });
 
       const data = await res.json();
 
-      setMessages((messages) => [
-        ...messages,
-        { status: "agent", message: data.text },
+      setMessages((prev) => [
+        ...prev,
+        {
+          status: "agent",
+          message: data.text,
+        },
       ]);
-
-      setAnswer(data.text);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          status: "agent",
+          message: "Something went wrong.",
+        },
+      ]);
+    } finally {
       setLoading(true);
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+
+      if (loading && prompt.trim()) {
+        askGemini();
+      }
+    }
+  };
+
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value);
+
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+  };
+
   return (
-    <div className="h-screen flex flex-col">
-      <div className="bg-neutral-700 p-3">
-        <h2 className="font-bold text-white">VnixAI</h2>
-      </div>
-      <main className={`flex flex-col ${messages.length === 0 ? "justify-center": ""} p-4 pt-0 items-center bg-black text-white h-full border`}>
-        <div>
-          {messages.length === 0 ? (
-            <div className="w-full flex items-center justify-center h-full">
-              <p className="font-semibold text-2xl md:text-3xl lg:text-4xl text-wrap">
-                Where should we begin?
-              </p>
-            </div>
-          ) : (
-            ""
-          )}
-        </div>
-        <div
-          className={`${messages.length === 0 ? "hidden" : "flex"} flex-col gap-1 w-full relative max-w-2xl pt-3 h-160 overflow-y-auto scrollbar-hide`}
-        >
-          {messages.map((item, index) =>
-            item.status === "agent" ? (
-              <div className="p-3" key={index}>
-                <p>{item.message}</p>
-                <div className="flex gap-2">
-                  <BiLike className="cursor-pointer" />
-                  <BiDislike className="cursor-pointer" />
-                </div>
-              </div>
-            ) : (
-              <div
-                className="bg-neutral-600 flex flex-col rounded-3xl ml-auto w-[80%] p-4"
-                key={index}
-              >
-                <p>{item.message}</p>
-              </div>
-            ),
-          )}
-          <div className={`${!loading ? "flex": "hidden"}`}>...</div>
-          <div ref={messagesEndRef} />
-        </div>
-        <div
-          className={`flex items-center justify-center ${messages.length === 0 ? "" : "mb-3"}  w-full`}
-        >
-          <div className="mt-4 bg-neutral-800  w-full flex justify-center items-center mx-4 p-3 rounded-3xl max-w-2xl">
-            <input
-              
-              className="w-full h-full text-xl text-blue-50 outline-none"
-              type="text"
-              placeholder="what's on your mind ?"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && loading) {
-                  askGemini();
-                }
-              }}
-            ></input>
-            <button
-              className="mx-2 p-2 cursor-pointer bg-white font-bold  text-black rounded-full"
-              onClick={() => {
-                if(loading)
-                askGemini();
-              }}
-            >
-              <IoSend />
-            </button>
+    <div className="h-screen flex flex-col bg-neutral-900 text-white font-sans">
+      {/* Header with Glassmorphism */}
+      <header className="p-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md sticky top-0 z-10">
+        <h1 className="text-xl font-bold tracking-wide">VnixAI</h1>
+      </header>
+
+      {/* Chat Area */}
+      <main className="flex-1 overflow-y-auto p-4 flex flex-col items-center w-full">
+        {messages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center h-full">
+            <h2 className="text-2xl md:text-3xl font-semibold text-neutral-500 tracking-tight">
+              Where should we begin?
+            </h2>
           </div>
-        </div>
+        ) : (
+          <div className="w-full max-w-3xl space-y-6 pb-24">
+            {messages.map((item, index) =>
+              item.status === "user" ? (
+                /* User Message Bubble */
+                <div key={index} className="flex justify-end w-full">
+                  <div className="bg-neutral-700 text-neutral-200 rounded-3xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-md">
+                    <p className="whitespace-pre-wrap leading-relaxed">
+                      {item.message}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Agent Response Panel (Full Width Markdown Layout) */
+                <div key={index} className="w-full border-b border-neutral-800/60 pb-6">
+                  <div className="prose prose-invert max-w-none prose-pre:bg-neutral-800 prose-pre:p-4 prose-pre:rounded-xl prose-code:text-green-400 leading-relaxed tracking-wide">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {item.message}
+                    </ReactMarkdown>
+                  </div>
+
+                  {/* Feedback Action Buttons */}
+                  <div className="flex gap-3 mt-4 text-neutral-500">
+                    <BiLike
+                      size={18}
+                      className="cursor-pointer hover:text-white transition-colors"
+                    />
+                    <BiDislike
+                      size={18}
+                      className="cursor-pointer hover:text-white transition-colors"
+                    />
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Typing Loader Element */}
+            {!loading && (
+              <div className="flex gap-1.5 py-4 items-center">
+                <div className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: "0ms" }}></div>
+                <div className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: "150ms" }}></div>
+                <div className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </main>
+
+      {/* Input Area Bar (Sticky Bottom Container with Premium Top Blur Glassmorphism) */}
+      <div className="w-full sticky bottom-0 p-4 pt-6 bg-neutral-900/70 backdrop-blur-xl border-t border-neutral-800/60 z-10">
+        <div className="max-w-3xl mx-auto flex items-end bg-neutral-800 rounded-3xl p-2 border border-neutral-700 focus-within:border-neutral-500 focus-within:ring-4 focus-within:ring-neutral-800/40 transition-all shadow-2xl">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={prompt}
+            onChange={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything..."
+            className="flex-1 bg-transparent outline-none resize-none px-4 py-3 max-h-[200px] text-white placeholder-neutral-400"
+          />
+
+          <button
+            disabled={!loading || !prompt.trim()}
+            onClick={askGemini}
+            className={`p-3 rounded-full transition-all duration-200 shadow-md ${
+              loading && prompt.trim()
+                ? "bg-white text-black hover:bg-neutral-200 hover:scale-105 active:scale-95 cursor-pointer"
+                : "bg-neutral-700 text-neutral-500 cursor-not-allowed"
+            }`}
+          >
+            <IoSend size={20} className={loading && prompt.trim() ? "ml-0.5" : ""} />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
