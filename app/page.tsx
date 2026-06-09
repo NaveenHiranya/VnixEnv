@@ -11,7 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState("");
   const [messages, setMessages] = useState<
-    { status: string; message: string }[]
+    {id:string; status: string; message: string }[]
   >([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,17 +37,15 @@ export default function Home() {
     if (!prompt.trim()) return;
     setState("sending...")
     const currentPrompt = prompt;
-
-    setLoading(false);
-    setPrompt("");
-
-    setMessages((prev) => [
+     setMessages((prev) => [
       ...prev,
-      {
+      { id: "",
         status: "user",
         message: currentPrompt,
       },
     ]);
+    setLoading(false);
+    setPrompt("");
 
     const combinedPrompt = `${currentPrompt}`;
     setState("Analyzing search results...");
@@ -65,10 +63,11 @@ export default function Home() {
       
 
       const data = await res.json();
+         
 
       setMessages((prev) => [
         ...prev,
-        {
+        { id: data.agentMessageId,
           status: "agent",
           message: data.text,
         },
@@ -77,7 +76,7 @@ export default function Home() {
     } catch (err) {
       setMessages((prev) => [
         ...prev,
-        {
+        { id:"",
           status: "agent",
           message: "Something went wrong.",
         },
