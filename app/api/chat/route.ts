@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     // 3. AI RESPONSE
     const completion = await client.chat.completions.create({
-      model: "meta/llama-3.3-70b-instruct",
+      model: "deepseek-ai/deepseek-v4-pro",
       messages: [{ role: "user", content: prompt }],
     });
 

@@ -5,8 +5,8 @@ import { IoSend } from "react-icons/io5";
 import { FaAngleDown } from "react-icons/fa";
 import { BiLike, BiDislike } from "react-icons/bi";
 import { IoIosLogOut } from "react-icons/io";
-import { TbCopy,TbCopyCheck,TbReload } from "react-icons/tb";
-import { BsCaretRightSquare,BsCaretLeftSquare,BsChat } from "react-icons/bs";
+import { TbCopy, TbCopyCheck, TbReload } from "react-icons/tb";
+import { BsCaretRightSquare, BsCaretLeftSquare, BsChat } from "react-icons/bs";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
@@ -233,34 +233,35 @@ export default function Home() {
 
   return (
     // Added overflow-hidden to the root to prevent any accidental body scrolling
-    <div className="h-screen flex flex-col bg-neutral-900 text-white font-sans overflow-hidden">
+    <div className="h-screen rounded-2xl p-2 border border-neutral-700 flex flex-col bg-neutral-900 text-white font-sans overflow-hidden">
       {/* Header with Glassmorphism */}
       <header className="p-4 border-b border-neutral-800 bg-neutral-900/80 backdrop-blur-md z-10 shrink-0">
-        <h1 className="text-xl font-bold tracking-wide">VnixAI</h1>
+        <h1 className="text-xl font-bold tracking-wide">ALoHa</h1>
       </header>
 
       {/* Replaced h-full with flex-1 flex flex-col overflow-hidden */}
       <div className="flex-1 flex flex-col overflow-hidden bg-black">
         {/* subHeader */}
-        <div className="flex shrink-0 p-2">
-          <button onClick={leftNavBar} className="border px-3 py-1 rounded">
-            <BsCaretRightSquare /><BsCaretLeftSquare />
+        <div className="flex shrink-0 p-2 justify-between">
+          <button onClick={leftNavBar} className="cursor-pointer">
+            {!leftNavBarV ? <BsCaretRightSquare /> : <BsCaretLeftSquare />}
           </button>
           <button
             onClick={NewChat}
-            className="ml-2 border px-3 py-1 rounded bg-white text-black"
+            className="p-1 px-2 rounded-bl-none cursor-pointer rounded-2xl  text-white flex items-center gap-1"
           >
-            <BsChat /> New Chat
+            <p>New</p>
+            <BsChat />
           </button>
         </div>
 
         {/* Replaced h-full with flex-1 to fill remaining space perfectly */}
-        <div className="flex-1 flex border overflow-hidden">
+        <div className="flex-1 flex border-t border-neutral-600 overflow-hidden">
           {/* left menu*/}
           <div className="flex flex-col relative shrink-0">
             <div
-              className={`w-40 absolute ${
-                leftNavBarV ? "hidden" : "flex"
+              className={`w-45 border-r border-r-neutral-800 absolute ${
+                !leftNavBarV ? "hidden" : "flex"
               } flex-col bg-black h-full z-[100]`}
             >
               <div className="w-full h-full flex flex-col justify-between pb-4 px-2 py-1 border-b border-b-neutral-700">
@@ -270,17 +271,9 @@ export default function Home() {
                   <div className="flex gap-2 mb-2">
                     <button
                       onClick={refreshChats}
-                      className="border px-2 py-1 rounded text-sm bg-white text-black"
+                      className="border px-2 py-1 cursor-pointer rounded text-sm bg-white text-black"
                     >
                       <TbReload />
-                    </button>
-
-                    <button
-                      onClick={() => loadChats(page)}
-                      className="border px-2 py-1 rounded text-sm"
-                      disabled={!hasMore}
-                    >
-                      Load more<FaAngleDown />
                     </button>
                   </div>
 
@@ -289,18 +282,32 @@ export default function Home() {
                       <button
                         key={chat._id}
                         onClick={() => openChat(chat._id)}
-                        className="w-full text-left border p-2 rounded hover:bg-neutral-800"
+                        className="w-full text-left  hover:bg-neutral-800"
                       >
                         {chat.chatName}
                       </button>
                     ))}
                   </div>
+                  <div className="w-full flex justify-center pt-3">
+                    <button
+                      onClick={() => loadChats(page)}
+                      className={`${hasMore ? "flex" : "hidden"} cursor-pointer px-2 py-1 rounded text-sm flex items-end gap-1`}
+                      disabled={!hasMore}
+                    >
+                      Load more
+                      <FaAngleDown />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="border p-2 rounded-2xl">
+                <div className="p-3">
+                  <div className="p-1">
                   <Link href="/login">{user ? user.name : "Sign"}</Link>
-                  <IoIosLogOut />
+                  </div>
+                  <div className="flex text-red-700 items-center gap-1 p-1 rounded-xl px-4 justify-between  border"><p>Log Out</p><IoIosLogOut /></div>
+                  
                 </div>
+                
               </div>
             </div>
           </div>
@@ -309,7 +316,7 @@ export default function Home() {
           {/* Removed fixed heights, added flex-1 */}
           <div className="flex-1 flex flex-col w-full overflow-hidden">
             {/* Chat Area */}
-            <main className="flex-1 overflow-y-auto p-4 flex flex-col items-center w-full">
+            <main className="flex-1 overflow-y-auto scrollbar-hide p-4 flex flex-col items-center w-full">
               {messages.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center h-full">
                   <h2 className="text-2xl md:text-3xl font-semibold text-neutral-500 tracking-tight">
@@ -329,10 +336,14 @@ export default function Home() {
                           </p>
 
                           {/* COPY BUTTON */}
-                          <button 
+                          <button
                             onClick={() => copyMessage(item.id, item.message)}
                           >
-                            {copiedId === item.id ? <TbCopyCheck /> : <TbCopy />}
+                            {copiedId === item.id ? (
+                              <TbCopyCheck />
+                            ) : (
+                              <TbCopy />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -370,7 +381,11 @@ export default function Home() {
                           <button
                             onClick={() => copyMessage(item.id, item.message)}
                           >
-                            {copiedId === item.id ? <TbCopyCheck /> : <TbCopy />}
+                            {copiedId === item.id ? (
+                              <TbCopyCheck />
+                            ) : (
+                              <TbCopy />
+                            )}
                           </button>
                         </div>
                       </div>
