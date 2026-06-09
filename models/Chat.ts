@@ -1,16 +1,19 @@
-import mongoose from 'mongoose';
+// models/Chat.ts
+import mongoose from "mongoose";
 
-const chatSchema = new mongoose.Schema({
-  chatId: { 
-    type: String, 
-    enum: ['user', 'agent'], 
-    required: true 
+const chatSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: String,
+      required: true,
+    },
+    chatName: {
+      type: String,
+      default: "New Chat",
+    },
   },
-  userId: { 
-    type: String, 
-    required: true 
-  }
-}, { timestamps: true }); // Automatically adds createdAt and updatedAt
+  { timestamps: true }
+);
 
-// This prevents Mongoose from recompiling the model if it's already registered
-export const Message = mongoose.models.Chat || mongoose.model('Message', chatSchema);
+export const Chat =
+  mongoose.models.Chat || mongoose.model("Chat", chatSchema);

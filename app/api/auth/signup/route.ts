@@ -3,34 +3,31 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
 export async function POST(req: Request) {
-  try {
-    await connectDB();
+  await connectDB();
 
-    const { name, email, password } = await req.json();
+  const { name, email, password } = await req.json();
 
-    const existingUser = await User.findOne({ email });
+  const exists = await User.findOne({ email });
 
-    if (existingUser) {
-      return NextResponse.json(
-        { message: "User already exists" },
-        { status: 400 }
-      );
-    }
-
-    const user = await User.create({
-      name,
-      email,
-      password, // Hash this before storing in production
-    });
-
-    return NextResponse.json({
-      message: "User created",
-      user,
-    });
-  } catch (error) {
+  if (exists) {
     return NextResponse.json(
-      { message: "Server Error" },
-      { status: 500 }
+      { message: "User already exists" },
+      { status: 400 }
     );
   }
+
+  const user = await User.create({ name, email, password });
+
+  const res = NextResponse.json({
+    success: true,
+    message: "Account created",
+  });
+
+  res.cookies.set("userId", user._id.toString(), {
+    httpOnly: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  return res;
 }

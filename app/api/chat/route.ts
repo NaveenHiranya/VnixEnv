@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { connectDB } from "@/lib/mongodb";
+import { Chat } from "@/models/Chat";
 import { Message } from "@/models/Message";
 
 const client = new OpenAI({
@@ -11,47 +12,51 @@ export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { prompt } = await req.json();
+    const { prompt, userId, chatId } = await req.json();
 
-    const userMessage = await Message.create({
+    let currentChatId = chatId;
+
+    // 1. CREATE CHAT if missing
+    if (!currentChatId) {
+      const chat = await Chat.create({
+        userId,
+        chatName: prompt.slice(0, 20) || "New Chat",
+      });
+
+      currentChatId = chat._id;
+    }
+
+    // 2. SAVE USER MESSAGE
+    await Message.create({
+      chatId: currentChatId,
       role: "user",
       message: prompt,
-      state: "none",
     });
 
+    // 3. AI RESPONSE
     const completion = await client.chat.completions.create({
       model: "meta/llama-3.3-70b-instruct",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const agentText =
-      completion.choices[0]?.message?.content ??
-      "I couldn't generate a response.";
+    const reply =
+      completion.choices[0]?.message?.content ||
+      "No response generated.";
 
-    const agentMessage = await Message.create({
+    // 4. SAVE AI MESSAGE
+    const aiMessage = await Message.create({
+      chatId: currentChatId,
       role: "agent",
-      message: agentText,
-      state: "none",
+      message: reply,
     });
 
     return Response.json({
-      text: agentText,
-      userMessageId: userMessage._id,
-      agentMessageId: agentMessage._id,
+      chatId: currentChatId,
+      text: reply,
+      agentMessageId: aiMessage._id,
     });
-  } catch (error) {
-    console.error(error);
-
-    return Response.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (err) {
+    console.error(err);
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
 }

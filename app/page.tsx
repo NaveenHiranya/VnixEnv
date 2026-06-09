@@ -7,10 +7,21 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
 
+type User = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 export default function Home() {
+  const [chatId, setChatId] = useState<string | null>(null);
+  const [chats, setChats] = useState<any[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState("");
+  const [user, setUser] = useState<User | null>(null);
   const [leftNavBarV, setLeftNavBar] = useState(false);
   const [messages, setMessages] = useState<
     { id: string; status: string; message: string }[]
@@ -28,6 +39,23 @@ export default function Home() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const res = await fetch("/api/me");
+        const data = await res.json();
+        setUser(data.user);
+      } catch (err) {
+        setUser(null);
+      }
+    };
+
+    loadUser();
+  }, []);
+  useEffect(() => {
+    if (user?.id) loadChats(0);
+  }, [user]);
 
   useEffect(() => {
     if (prompt === "" && textareaRef.current) {
@@ -56,12 +84,16 @@ export default function Home() {
         },
         body: JSON.stringify({
           prompt: combinedPrompt,
+          userId: user?.id,
+          chatId: chatId,
         }),
       });
       setState("receving...");
 
       const data = await res.json();
-
+      if (!chatId) {
+        setChatId(data.chatId);
+      }
       setMessages((prev) => [
         ...prev,
         { id: data.agentMessageId, status: "agent", message: data.text },
@@ -77,6 +109,10 @@ export default function Home() {
     }
   };
 
+  const NewChat = () => {
+    setChatId(null);
+    setMessages([]);
+  };
   const leftNavBar = () => {
     setLeftNavBar(!leftNavBarV);
   };
@@ -98,6 +134,58 @@ export default function Home() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
   };
 
+  const refreshChats = async () => {
+    if (!user?.id) return;
+
+    setPage(0);
+    setChats([]);
+    setHasMore(true);
+
+    const res = await fetch(`/api/chats?userId=${user.id}&page=0`);
+    const data = await res.json();
+
+    setChats(data.chats);
+    setHasMore(data.hasMore);
+    setPage(1);
+  };
+  const loadChats = async (nextPage?: number) => {
+    if (!user?.id) return;
+
+    const pageToLoad = nextPage ?? page;
+
+    const res = await fetch(`/api/chats?userId=${user.id}&page=${pageToLoad}`);
+
+    const data = await res.json();
+
+    if (pageToLoad === 0) {
+      setChats(data.chats);
+    } else {
+      setChats((prev) => {
+        const existingIds = new Set(prev.map((c) => c._id));
+        const newChats = data.chats.filter((c: any) => !existingIds.has(c._id));
+        return [...prev, ...newChats];
+      });
+    }
+
+    setHasMore(data.hasMore);
+    setPage(pageToLoad + 1);
+  };
+  const openChat = async (id: string) => {
+    setChatId(id);
+
+    const res = await fetch(`/api/messages?chatId=${id}`);
+    const data = await res.json();
+    console.log("MESSAGES API RESULT:", data);
+
+    setMessages(
+      data.messages.map((m: any) => ({
+        id: m._id,
+        status: m.role,
+        message: m.message,
+      })),
+    );
+  };
+
   return (
     // Added overflow-hidden to the root to prevent any accidental body scrolling
     <div className="h-screen flex flex-col bg-neutral-900 text-white font-sans overflow-hidden">
@@ -113,6 +201,12 @@ export default function Home() {
           <button onClick={leftNavBar} className="border px-3 py-1 rounded">
             <p>x</p>
           </button>
+          <button
+            onClick={NewChat}
+            className="ml-2 border px-3 py-1 rounded bg-white text-black"
+          >
+            New Chat
+          </button>
         </div>
 
         {/* Replaced h-full with flex-1 to fill remaining space perfectly */}
@@ -124,10 +218,42 @@ export default function Home() {
                 leftNavBarV ? "hidden" : "flex"
               } flex-col bg-black h-full z-[100]`}
             >
-              <div className="w-full px-2 py-1 border-b border-b-neutral-700">
-                <p>Library</p>
+              <div className="w-full h-full flex flex-col justify-between pb-4 px-2 py-1 border-b border-b-neutral-700">
                 <div>
-                  <Link href="/login">Account</Link>
+                  <p className="font-bold mb-2">Chats</p>
+
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      onClick={refreshChats}
+                      className="border px-2 py-1 rounded text-sm bg-white text-black"
+                    >
+                      Refresh
+                    </button>
+
+                    <button
+                      onClick={() => loadChats(page)}
+                      className="border px-2 py-1 rounded text-sm"
+                      disabled={!hasMore}
+                    >
+                      Load more
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {chats.map((chat) => (
+                      <button
+                        key={chat._id}
+                        onClick={() => openChat(chat._id)}
+                        className="w-full text-left border p-2 rounded hover:bg-neutral-800"
+                      >
+                        {chat.chatName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border p-2 rounded-2xl">
+                  <Link href="/login">{user ? user.name : "Sign"}</Link>
                 </div>
               </div>
             </div>
@@ -136,7 +262,6 @@ export default function Home() {
           {/* chatSpace with input field */}
           {/* Removed fixed heights, added flex-1 */}
           <div className="flex-1 flex flex-col w-full overflow-hidden">
-            
             {/* Chat Area */}
             <main className="flex-1 overflow-y-auto p-4 flex flex-col items-center w-full">
               {messages.length === 0 ? (
@@ -182,7 +307,7 @@ export default function Home() {
                           />
                         </div>
                       </div>
-                    )
+                    ),
                   )}
 
                   {/* Typing Loader Element */}
@@ -241,7 +366,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            
           </div>
         </div>
       </div>
