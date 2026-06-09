@@ -9,12 +9,8 @@ export async function POST(req: Request) {
     const { prompt } = await req.json();
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
-      config: {
-        systemInstruction:
-          "You are VnixAI. Provide clear answers formatted using standard Markdown.",
-      },
     });
 
     return Response.json({

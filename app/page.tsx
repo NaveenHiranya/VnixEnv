@@ -9,7 +9,10 @@ import remarkGfm from "remark-gfm";
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<{ status: string; message: string }[]>([]);
+  const [state, setState] = useState("");
+  const [messages, setMessages] = useState<
+    { status: string; message: string }[]
+  >([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -32,7 +35,7 @@ export default function Home() {
 
   const askGemini = async () => {
     if (!prompt.trim()) return;
-
+    setState("sending...")
     const currentPrompt = prompt;
 
     setLoading(false);
@@ -47,7 +50,7 @@ export default function Home() {
     ]);
 
     const combinedPrompt = `${currentPrompt}`;
-
+    setState("Analyzing search results...");
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -58,6 +61,8 @@ export default function Home() {
           prompt: combinedPrompt,
         }),
       });
+      setState("receving...");
+      
 
       const data = await res.json();
 
@@ -68,6 +73,7 @@ export default function Home() {
           message: data.text,
         },
       ]);
+      setState("rendering");
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -127,7 +133,10 @@ export default function Home() {
                 </div>
               ) : (
                 /* Agent Response Panel (Full Width Markdown Layout) */
-                <div key={index} className="w-full border-b border-neutral-800/60 pb-6">
+                <div
+                  key={index}
+                  className="w-full border-b border-neutral-800/60 pb-6"
+                >
                   <div className="prose prose-invert max-w-none prose-pre:bg-neutral-800 prose-pre:p-4 prose-pre:rounded-xl prose-code:text-green-400 leading-relaxed tracking-wide">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {item.message}
@@ -146,15 +155,27 @@ export default function Home() {
                     />
                   </div>
                 </div>
-              )
+              ),
             )}
 
             {/* Typing Loader Element */}
             {!loading && (
-              <div className="flex gap-1.5 py-4 items-center">
-                <div className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                <div className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                <div className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce" style={{ animationDelay: "300ms" }}></div>
+              <div>
+                <div className="flex gap-1.5 py-4 items-center">
+                  <div
+                    className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 rounded-full bg-neutral-500 animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  ></div>
+                </div>
+                <div>{state}</div>
               </div>
             )}
 
@@ -185,7 +206,10 @@ export default function Home() {
                 : "bg-neutral-700 text-neutral-500 cursor-not-allowed"
             }`}
           >
-            <IoSend size={20} className={loading && prompt.trim() ? "ml-0.5" : ""} />
+            <IoSend
+              size={20}
+              className={loading && prompt.trim() ? "ml-0.5" : ""}
+            />
           </button>
         </div>
       </div>
