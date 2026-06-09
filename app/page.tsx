@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { IoSend } from "react-icons/io5";
+import { FaAngleDown } from "react-icons/fa";
 import { BiLike, BiDislike } from "react-icons/bi";
+import { IoIosLogOut } from "react-icons/io";
+import { TbCopy,TbCopyCheck,TbReload } from "react-icons/tb";
+import { BsCaretRightSquare,BsCaretLeftSquare,BsChat } from "react-icons/bs";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
@@ -15,6 +19,7 @@ type User = {
 
 export default function Home() {
   const [chatId, setChatId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [chats, setChats] = useState<any[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -24,7 +29,12 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [leftNavBarV, setLeftNavBar] = useState(false);
   const [messages, setMessages] = useState<
-    { id: string; status: string; message: string }[]
+    {
+      id: string;
+      status: string;
+      message: string;
+      state?: "liked" | "disliked" | "none";
+    }[]
   >([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -109,6 +119,16 @@ export default function Home() {
     }
   };
 
+  const copyMessage = async (id: string, text: string) => {
+    await navigator.clipboard.writeText(text);
+
+    setCopiedId(id);
+
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 1500);
+  };
+
   const NewChat = () => {
     setChatId(null);
     setMessages([]);
@@ -170,6 +190,30 @@ export default function Home() {
     setHasMore(data.hasMore);
     setPage(pageToLoad + 1);
   };
+  const updateMessageState = async (
+    messageId: string,
+    state: "liked" | "disliked",
+  ) => {
+    try {
+      await fetch("/api/message/state", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messageId,
+          state,
+        }),
+      });
+
+      // OPTIONAL: update UI instantly
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, state } : msg)),
+      );
+    } catch (err) {
+      console.log("Failed to update state", err);
+    }
+  };
   const openChat = async (id: string) => {
     setChatId(id);
 
@@ -182,6 +226,7 @@ export default function Home() {
         id: m._id,
         status: m.role,
         message: m.message,
+        state: m.state,
       })),
     );
   };
@@ -199,13 +244,13 @@ export default function Home() {
         {/* subHeader */}
         <div className="flex shrink-0 p-2">
           <button onClick={leftNavBar} className="border px-3 py-1 rounded">
-            <p>x</p>
+            <BsCaretRightSquare /><BsCaretLeftSquare />
           </button>
           <button
             onClick={NewChat}
             className="ml-2 border px-3 py-1 rounded bg-white text-black"
           >
-            New Chat
+            <BsChat /> New Chat
           </button>
         </div>
 
@@ -227,7 +272,7 @@ export default function Home() {
                       onClick={refreshChats}
                       className="border px-2 py-1 rounded text-sm bg-white text-black"
                     >
-                      Refresh
+                      <TbReload />
                     </button>
 
                     <button
@@ -235,7 +280,7 @@ export default function Home() {
                       className="border px-2 py-1 rounded text-sm"
                       disabled={!hasMore}
                     >
-                      Load more
+                      Load more<FaAngleDown />
                     </button>
                   </div>
 
@@ -254,6 +299,7 @@ export default function Home() {
 
                 <div className="border p-2 rounded-2xl">
                   <Link href="/login">{user ? user.name : "Sign"}</Link>
+                  <IoIosLogOut />
                 </div>
               </div>
             </div>
@@ -277,10 +323,17 @@ export default function Home() {
                     item.status === "user" ? (
                       /* User Message Bubble */
                       <div key={index} className="flex justify-end w-full">
-                        <div className="bg-neutral-700 text-neutral-200 rounded-3xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-md">
-                          <p className="whitespace-pre-wrap wrap-break-word leading-relaxed">
+                        <div className="bg-neutral-700 text-neutral-200 rounded-3xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-md group relative">
+                          <p className="whitespace-pre-wrap break-words leading-relaxed">
                             {item.message}
                           </p>
+
+                          {/* COPY BUTTON */}
+                          <button 
+                            onClick={() => copyMessage(item.id, item.message)}
+                          >
+                            {copiedId === item.id ? <TbCopyCheck /> : <TbCopy />}
+                          </button>
                         </div>
                       </div>
                     ) : (
@@ -299,12 +352,26 @@ export default function Home() {
                         <div className="flex gap-3 mt-4 text-neutral-500">
                           <BiLike
                             size={18}
-                            className="cursor-pointer hover:text-white transition-colors"
+                            onClick={() => updateMessageState(item.id, "liked")}
+                            className={`cursor-pointer hover:text-white transition-colors ${
+                              item.state === "liked" ? "text-green-400" : ""
+                            }`}
                           />
+
                           <BiDislike
                             size={18}
-                            className="cursor-pointer hover:text-white transition-colors"
+                            onClick={() =>
+                              updateMessageState(item.id, "disliked")
+                            }
+                            className={`cursor-pointer hover:text-white transition-colors ${
+                              item.state === "disliked" ? "text-red-400" : ""
+                            }`}
                           />
+                          <button
+                            onClick={() => copyMessage(item.id, item.message)}
+                          >
+                            {copiedId === item.id ? <TbCopyCheck /> : <TbCopy />}
+                          </button>
                         </div>
                       </div>
                     ),
