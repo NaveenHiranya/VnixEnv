@@ -1,68 +1,56 @@
-import { GoogleGenAI } from "@google/genai";
-import mongoose from 'mongoose';
-import { Message } from '@/models/Message'; // Adjust this import path as needed
+import OpenAI from "openai";
+import { connectDB } from "@/lib/mongodb";
+import { Message } from "@/models/Message";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
+const client = new OpenAI({
+  apiKey: process.env.NVIDIA_API_KEY!,
+  baseURL: "https://integrate.api.nvidia.com/v1",
 });
-
-// Helper function to manage serverless database connections
-async function connectToDatabase() {
-  if (mongoose.connection.readyState >= 1) {
-    console.log("MongoDB already connected");
-    return;
-  }
-
-  try {
-    await mongoose.connect(process.env.MONGO_URI!);
-    console.log("MongoDB connected successfully");
-  } catch (error) {
-    console.error("MongoDB connection failed:", error);
-    throw error;
-  }
-}
 
 export async function POST(req: Request) {
   try {
-    // 1. Ensure DB connection is established
-    await connectToDatabase();
+    await connectDB();
 
     const { prompt } = await req.json();
 
-    // 2. Save the User's message to MongoDB
     const userMessage = await Message.create({
-      role: 'user',
+      role: "user",
       message: prompt,
-      state: 'none'
+      state: "none",
     });
 
-    // 3. Generate response from Gemini
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
+    const completion = await client.chat.completions.create({
+      model: "meta/llama-3.3-70b-instruct",
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 1024,
     });
-    
-    const agentText = response.text || "I'm sorry, I couldn't generate a response.";
 
-    // 4. Save the Agent's message to MongoDB
+    const agentText =
+      completion.choices[0]?.message?.content ??
+      "I couldn't generate a response.";
+
     const agentMessage = await Message.create({
-      role: 'agent',
+      role: "agent",
       message: agentText,
-      state: 'none'
+      state: "none",
     });
 
-    // 5. Return the text AND the new database IDs to the client front-end
     return Response.json({
       text: agentText,
       userMessageId: userMessage._id,
       agentMessageId: agentMessage._id,
     });
-
   } catch (error) {
-    console.error("API Route Error:", error);
+    console.error(error);
 
     return Response.json(
-      { error: "Failed to generate response or save to database." },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
