@@ -8,15 +8,30 @@ const client = new OpenAI({
   baseURL: "https://integrate.api.nvidia.com/v1",
 });
 
+const models = [
+  "deepseek-ai/deepseek-v4-pro",
+  "google/gemma-4-31b-it",
+  "meta/llama-3.3-70b-instruct",
+];
+
 export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { prompt, userId, chatId } = await req.json();
+    const { prompt, userId, chatId, modelId } = await req.json();
+
+    const index = Number(modelId);
+
+    if (!models[index]) {
+      return Response.json(
+        { error: "Invalid model." },
+        { status: 400 }
+      );
+    }
 
     let currentChatId = chatId;
 
-    // 1. CREATE CHAT if missing
+    // Create new chat if needed
     if (!currentChatId) {
       const chat = await Chat.create({
         userId,
@@ -26,37 +41,54 @@ export async function POST(req: Request) {
       currentChatId = chat._id;
     }
 
-    // 2. SAVE USER MESSAGE
+    // Save user message
     await Message.create({
       chatId: currentChatId,
       role: "user",
       message: prompt,
     });
 
-    // 3. AI RESPONSE
+    // Measure AI response time
+    console.time("AI");
+
     const completion = await client.chat.completions.create({
-      model: "deepseek-ai/deepseek-v4-pro",
-      messages: [{ role: "user", content: prompt }],
+      model: models[index],
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      max_tokens: 512,
     });
 
+    console.timeEnd("AI");
+
     const reply =
-      completion.choices[0]?.message?.content ||
+      completion.choices[0]?.message?.content ??
       "No response generated.";
 
-    // 4. SAVE AI MESSAGE
-    const aiMessage = await Message.create({
+    // Save AI message in background
+    Message.create({
       chatId: currentChatId,
       role: "agent",
       message: reply,
-    });
+    }).catch(console.error);
 
     return Response.json({
       chatId: currentChatId,
       text: reply,
-      agentMessageId: aiMessage._id,
     });
-  } catch (err) {
-    console.error(err);
-    return Response.json({ error: "Server error" }, { status: 500 });
+  } catch (error) {
+    console.error(error);
+
+    return Response.json(
+      {
+        error: "Server error",
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }

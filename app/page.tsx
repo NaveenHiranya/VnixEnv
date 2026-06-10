@@ -9,6 +9,7 @@ import { TbCopy, TbCopyCheck, TbReload } from "react-icons/tb";
 import { BsCaretRightSquare, BsCaretLeftSquare, BsChat } from "react-icons/bs";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { FaChevronDown } from "react-icons/fa";
 import Link from "next/link";
 
 type User = {
@@ -24,6 +25,8 @@ export default function Home() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [prompt, setPrompt] = useState("");
+  const [modelId, setModelId] = useState(0);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState("");
   const [user, setUser] = useState<User | null>(null);
@@ -36,6 +39,7 @@ export default function Home() {
       state?: "liked" | "disliked" | "none";
     }[]
   >([]);
+  const models = ["deepseek-v4-pro", "google/gemma-4", "meta/llama-3.3"];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -73,7 +77,7 @@ export default function Home() {
     }
   }, [prompt]);
 
-  const askGemini = async () => {
+  const getPrompt = async () => {
     if (!prompt.trim()) return;
     setState("sending...");
     const currentPrompt = prompt;
@@ -96,6 +100,7 @@ export default function Home() {
           prompt: combinedPrompt,
           userId: user?.id,
           chatId: chatId,
+          modelId: modelId,
         }),
       });
       setState("receving...");
@@ -142,7 +147,7 @@ export default function Home() {
       e.preventDefault();
 
       if (loading && prompt.trim()) {
-        askGemini();
+        getPrompt();
       }
     }
   };
@@ -243,9 +248,49 @@ export default function Home() {
       <div className="flex-1 flex flex-col overflow-hidden bg-black">
         {/* subHeader */}
         <div className="flex shrink-0 p-2 justify-between">
-          <button onClick={leftNavBar} className="cursor-pointer">
-            {!leftNavBarV ? <BsCaretRightSquare /> : <BsCaretLeftSquare />}
-          </button>
+          <div className="flex gap-2 items-center">
+            <button onClick={leftNavBar} className="cursor-pointer">
+              {!leftNavBarV ? <BsCaretRightSquare /> : <BsCaretLeftSquare />}
+            </button>
+            <div className="relative w-72">
+              {/* Button */}
+              <button
+                onClick={() => setOpen(!open)}
+                className="w-40 flex items-center text-sm justify-between px-2 py-2 bg-neutral-900 border border-neutral-700 rounded-xl text-white hover:border-neutral-500 cursor-pointer transition"
+              >
+                <span>{models[modelId]}</span>
+
+                <FaChevronDown
+                  className={`transition duration-300 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown */}
+              {open && (
+                <div className="absolute text-sm mt-2 w-40 cursor-pointer bg-neutral-900 border border-neutral-700 rounded-xl shadow-xl overflow-hidden z-50">
+                  {models.map((model, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setModelId(index);
+                        setOpen(false);
+                      }}
+                      className={`w-full cursor-pointer text-left px-4 py-2 transition
+                ${
+                  modelId === index
+                    ? "bg-neutral-700 text-white"
+                    : "text-neutral-300 hover:bg-neutral-800"
+                }`}
+                    >
+                      {model}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <button
             onClick={NewChat}
             className="p-1 px-2 rounded-bl-none cursor-pointer rounded-2xl  text-white flex items-center gap-1"
@@ -262,7 +307,7 @@ export default function Home() {
             <div
               className={`w-45 border-r border-r-neutral-800 absolute ${
                 !leftNavBarV ? "hidden" : "flex"
-              } flex-col bg-black h-full z-[100]`}
+              } flex-col bg-black h-full z-100`}
             >
               <div className="w-full h-full flex flex-col justify-between pb-4 px-2 py-1 border-b border-b-neutral-700">
                 <div>
@@ -302,12 +347,13 @@ export default function Home() {
 
                 <div className="p-3">
                   <div className="p-1">
-                  <Link href="/login">{user ? user.name : "Sign"}</Link>
+                    <Link href="/login">{user ? user.name : "Sign"}</Link>
                   </div>
-                  <div className="flex text-red-700 items-center gap-1 p-1 rounded-xl px-4 justify-between  border"><p>Log Out</p><IoIosLogOut /></div>
-                  
+                  <div className="flex text-red-700 items-center gap-1 p-1 rounded-xl px-4 justify-between  border">
+                    <p>Log Out</p>
+                    <IoIosLogOut />
+                  </div>
                 </div>
-                
               </div>
             </div>
           </div>
@@ -331,7 +377,7 @@ export default function Home() {
                       /* User Message Bubble */
                       <div key={index} className="flex justify-end w-full">
                         <div className="bg-neutral-700 text-neutral-200 rounded-3xl rounded-tr-sm px-5 py-3 max-w-[80%] shadow-md group relative">
-                          <p className="whitespace-pre-wrap break-words leading-relaxed">
+                          <p className="whitespace-pre-wrap wrap-break-words leading-relaxed">
                             {item.message}
                           </p>
 
@@ -429,12 +475,12 @@ export default function Home() {
                   onChange={handleInput}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask anything..."
-                  className="flex-1 bg-transparent outline-none resize-none px-4 py-3 max-h-[200px] text-white placeholder-neutral-400"
+                  className="flex-1 bg-transparent outline-none resize-none px-4 py-3 max-h-50 text-white placeholder-neutral-400"
                 />
 
                 <button
                   disabled={!loading || !prompt.trim()}
-                  onClick={askGemini}
+                  onClick={getPrompt}
                   className={`p-3 rounded-full transition-all duration-200 shadow-md ${
                     loading && prompt.trim()
                       ? "bg-white text-black hover:bg-neutral-200 hover:scale-105 active:scale-95 cursor-pointer"
