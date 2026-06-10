@@ -23,7 +23,7 @@ This project explores how modern AI-powered applications are built using AI APIs
 
 ## 📸 Project Screenshot
 
-![Home](./assets/home.png)
+![Home](./assests/home.png)
 
 ---
 
