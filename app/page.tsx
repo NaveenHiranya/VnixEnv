@@ -50,6 +50,14 @@ export default function Home() {
     });
   };
 
+  const logout = async () => {
+    await fetch("/api/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/login";
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
@@ -350,7 +358,7 @@ export default function Home() {
                     <Link href="/login">{user ? user.name : "Sign"}</Link>
                   </div>
                   <div className="flex text-red-700 items-center gap-1 p-1 rounded-xl px-4 justify-between  border">
-                    <p>Log Out</p>
+                    <button className="cursor-pointer" onClick={logout}>Log out</button>
                     <IoIosLogOut />
                   </div>
                 </div>
