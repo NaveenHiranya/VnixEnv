@@ -18,6 +18,7 @@ This project explores how modern AI-powered applications are built using AI APIs
 * 📋 One-click copy responses
 * 🔑 Basic Email & Password Sign In / Sign Up
 * 🎨 Clean and responsive UI
+*  Logout option
 
 ---
 
