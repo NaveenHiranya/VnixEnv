@@ -245,7 +245,7 @@ export default function Home() {
         )}
 
         <div className="text-white">{state}</div>
-        <iframe srcDoc={generatedCode} className={`w-full h-[600px] border ${generated ? "" : "hidden"}`} />
+        <iframe srcDoc={generatedCode} className={`w-full border h-[500px] ${generated ? "" : "hidden"}`} />
         <div className="absolute bottom-10 w-full left-0 px-4">
           <div className="flex items-end bg-neutral-800 rounded-3xl p-2 border border-neutral-700">
             <textarea

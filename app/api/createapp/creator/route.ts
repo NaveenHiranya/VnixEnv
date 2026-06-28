@@ -5,6 +5,16 @@ const client = new OpenAI({
   apiKey: "ollama",
 });
 
+function cleanAIJson(text: string) {
+  return text
+    .replace(/```json/g, "")
+    .replace(/```Generated/g, "")
+    .replace(/```Generated html:/g,"")
+    .replace(/```html/g,"")
+    .replace(/```/g, "")
+    .trim();
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -57,9 +67,10 @@ No backticks.`,
     const html = response.choices[0].message.content ?? "";
 
     console.log("HTML OUTPUT:", html);
+    const cleaned = cleanAIJson(html);
 
     // 🚀 return RAW HTML string
-    return new Response(html, {
+    return new Response(cleaned, {
       headers: {
         "Content-Type": "text/html",
       },
