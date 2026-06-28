@@ -173,12 +173,10 @@ export default function Home() {
         throw new Error("Request failed");
       }
 
-      // ✅ HTML STRING FROM BACKEND
       const html = await res.text();
 
       console.log("Generated HTML:", html);
 
-      // ✅ render or store HTML
       setGeneratedCode(html);
 
       setState("App generated successfully");
@@ -215,6 +213,7 @@ export default function Home() {
       </header>
 
       <main className="flex-1 flex flex-col max-w-3xl mx-auto w-full p-4 relative">
+       
         {messages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <h2 className="text-3xl text-neutral-500">
