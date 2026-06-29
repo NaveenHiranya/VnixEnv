@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import loadingSvg from "@/public/circle-fade2.svg";
 import Image from "next/image";
+import Header from "../components/header";
 
 type Message = {
   role: "user" | "assistant";
@@ -58,7 +59,7 @@ export default function Home() {
     try {
       setState("Understanding content...");
 
-      const res = await fetch("/api/createapp/identifier", {
+      const res = await fetch("/api/createapp/analyst", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: currentPrompt }),
@@ -66,15 +67,20 @@ export default function Home() {
 
       if (!res.ok) throw new Error("Request failed");
 
-      const data = await res.json();
+      const app = await res.json();
 
-      if (data.isProgram) {
-        setState("Objective: " + data.message);
-        await appGenerator(currentPrompt);
+      if (app.isDev) {
+        // setState("Objective: " + data.message);
+        console.log(app);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", message: app.appDescription },
+        ]);
+        setLoading(false);
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", message: data.message },
+          { role: "assistant", message: app.appDescription },
         ]);
 
         setState("Describe your application clearly...");
@@ -185,9 +191,7 @@ export default function Home() {
 
   return (
     <div className="border border-white w-full h-screen flex flex-col text-white">
-      <header className="shrink-0 p-4 border-b border-neutral-800 bg-neutral-900">
-        <h1 className="text-xl font-bold">ALoHa</h1>
-      </header>
+      <Header />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {messages.length === 0 ? (
