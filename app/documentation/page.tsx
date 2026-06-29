@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import warning from "@/public/documantation/mark.png";
+import warning from "@/public/documentation/mark.png";
 export default function doc() {
   return (
     <div className="text-white flex items-center flex-col">
