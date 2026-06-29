@@ -38,7 +38,7 @@ export default function Auth() {
       const data = await res.json();
 
       if (res.ok) {
-        router.push("/");
+        router.push("/settings");
         return;
       }
 

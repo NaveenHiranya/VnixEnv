@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     res.cookies.set("userId", user._id.toString(), {
       httpOnly: true,
-      path: "/",
+      path: "/settings",
       maxAge: 60 * 60 * 24 * 7,
     });
 
