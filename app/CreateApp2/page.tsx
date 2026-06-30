@@ -8,6 +8,17 @@ import loadingSvg from "@/public/circle-fade2.svg";
 import Image from "next/image";
 import Header from "../components/header";
 
+interface AppData {
+  isDev: boolean;
+  appName: string;
+  appDescription: string;
+  features: string[];
+  pages: string[];
+  components: string[];
+  uiSuggestions: string[];
+  technicalNotes: string[];
+}
+
 type Message = {
   role: "user" | "assistant";
   message: string;
@@ -23,6 +34,8 @@ export default function Home() {
 
   const [generatedCode, setGeneratedCode] = useState<string>("");
   const [generated, setGenerated] = useState(false);
+
+  const [appData, setAppData] = useState<AppData | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -49,10 +62,7 @@ export default function Home() {
     setLoading(true);
     setState("Sending...");
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", message: currentPrompt },
-    ]);
+    setMessages((prev) => [...prev, { role: "user", message: currentPrompt }]);
 
     setPrompt("");
 
@@ -72,10 +82,12 @@ export default function Home() {
       if (app.isDev) {
         // setState("Objective: " + data.message);
         console.log(app);
+        setAppData(app);
         setMessages((prev) => [
           ...prev,
           { role: "assistant", message: app.appDescription },
         ]);
+
         setLoading(false);
       } else {
         setMessages((prev) => [
@@ -190,14 +202,13 @@ export default function Home() {
   };
 
   return (
-    <div className="border border-white w-full h-screen flex flex-col text-white">
+    <div className="w-full h-screen flex flex-col text-white bg-linear-to-br from-black to-blue-900">
       <Header />
-
       <main className="flex-1 flex flex-col overflow-hidden">
         {messages.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <h2 className="text-2xl text-neutral-500">
-              I'm here to help you create your application...
+          <div className="flex-1 flex items-center justify-center relative">
+            <h2 className="text-2xl text-neutral-100">
+              Lets build your application !
             </h2>
           </div>
         ) : (
@@ -211,9 +222,7 @@ export default function Home() {
               >
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    m.role === "user"
-                      ? "bg-blue-600"
-                      : "bg-neutral-800"
+                    m.role === "user" ? "bg-blue-600" : "bg-neutral-800"
                   }`}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -226,15 +235,15 @@ export default function Home() {
             {/* Loading indicator */}
             {loading && (
               <div className="ml-2 flex items-center gap-2 text-white">
-                <Image
-                  alt="loading"
-                  width={20}
-                  height={20}
-                  src={loadingSvg}
-                />
+                <Image alt="loading" width={20} height={20} src={loadingSvg} />
                 <span className="text-sm text-neutral-300">{state}</span>
               </div>
             )}
+
+            <div className="text-white">
+                  {appData ? <p>{appData.appName}</p> : <p>Not added</p>}
+                  
+            </div>
 
             {/* PREVIEW PANEL (IMPROVED IFRAME) */}
             {generated && generatedCode && (
@@ -252,6 +261,8 @@ export default function Home() {
                   </button>
                 </div>
 
+                
+
                 <iframe
                   srcDoc={generatedCode}
                   sandbox="allow-scripts allow-forms allow-modals allow-same-origin"
@@ -265,7 +276,7 @@ export default function Home() {
 
       {/* INPUT */}
       <div className="shrink-0 m-3">
-        <div className="flex bg-neutral-800 rounded-3xl p-2 border border-neutral-700">
+        <div className="flex bg-neutral-900 rounded-3xl p-2 border border-neutral-700">
           <textarea
             ref={textareaRef}
             rows={1}
