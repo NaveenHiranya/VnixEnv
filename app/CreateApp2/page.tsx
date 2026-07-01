@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import loadingSvg from "@/public/circle-fade2.svg";
 import Image from "next/image";
 import Header from "../components/header";
+import ArrayEditor from "../components/ArrayEditor";
 
 interface AppData {
   isDev: boolean;
@@ -116,6 +117,7 @@ export default function Home() {
   const appGenerator = async (prompt: string) => {
     setLoading(true);
     setState("Improving prompt...");
+    
 
     try {
       const res = await fetch("/api/createapp/features", {
@@ -201,6 +203,39 @@ export default function Home() {
     }
   };
 
+  function buildPrompt(data: AppData) {
+    return `
+Application Name:
+${data.appName}
+
+Description:
+${data.appDescription}
+
+Features:
+${data.features.map((f) => `- ${f}`).join("\n")}
+
+Pages:
+${data.pages.map((p) => `- ${p}`).join("\n")}
+
+Components:
+${data.components.map((c) => `- ${c}`).join("\n")}
+
+UI Suggestions:
+${data.uiSuggestions.map((u) => `- ${u}`).join("\n")}
+
+Technical Notes:
+${data.technicalNotes.map((t) => `- ${t}`).join("\n")}
+`.trim();
+  }
+
+const handleSubmit = async () => {
+  if (!appData) return;
+
+  const prompt = buildPrompt(appData);
+
+  appGenerator(prompt);
+};
+
   return (
     <div className="w-full h-screen flex flex-col text-white bg-linear-to-br from-black to-blue-900">
       <Header />
@@ -241,8 +276,72 @@ export default function Home() {
             )}
 
             <div className="text-white">
-                  {appData ? <p>{appData.appName}</p> : <p>Not added</p>}
-                  
+              {appData && (
+                <>
+                  <p className="font-bold text-xl">Name:</p>
+                  <input
+                    className="border my-1 p-2 rounded-2xl"
+                    value={appData.appName}
+                    onChange={(e) =>
+                      setAppData({
+                        ...appData,
+                        appName: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="font-bold text-xl">Description</p>
+                  <textarea
+                    className="w-full outline-none border rounded-2xl p-2"
+                    value={appData.appDescription}
+                    onChange={(e) =>
+                      setAppData({
+                        ...appData,
+                        appDescription: e.target.value,
+                      })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="Features"
+                    items={appData.features}
+                    onChange={(features) =>
+                      setAppData({ ...appData, features })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="Pages"
+                    items={appData.pages}
+                    onChange={(pages) => setAppData({ ...appData, pages })}
+                  />
+
+                  <ArrayEditor
+                    title="Components"
+                    items={appData.components}
+                    onChange={(components) =>
+                      setAppData({ ...appData, components })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="UI Suggestions"
+                    items={appData.uiSuggestions}
+                    onChange={(uiSuggestions) =>
+                      setAppData({ ...appData, uiSuggestions })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="Technical Notes"
+                    items={appData.technicalNotes}
+                    onChange={(technicalNotes) =>
+                      setAppData({ ...appData, technicalNotes })
+                    }
+                  />
+
+                  <button onClick={handleSubmit} className="border p-1 px-2 rounded-xl bg-green-500">Submit</button>
+                </>
+              )}
             </div>
 
             {/* PREVIEW PANEL (IMPROVED IFRAME) */}
@@ -260,8 +359,6 @@ export default function Home() {
                     Close
                   </button>
                 </div>
-
-                
 
                 <iframe
                   srcDoc={generatedCode}

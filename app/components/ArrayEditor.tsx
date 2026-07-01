@@ -16,7 +16,7 @@ export default function ArrayEditor({
       {items.map((item, index) => (
         <div key={index} className="flex gap-2 mb-2">
           <input
-            className="border p-2 flex-1"
+            className="border p-2 flex-1 rounded-2xl"
             value={item}
             onChange={(e) => {
               const copy = [...items];
