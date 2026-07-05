@@ -16,16 +16,21 @@ export async function POST(req: Request) {
     );
   }
 
-  const appCreate = await AppCreate.create({ userId, appName, code });
+  const slug = appName.toLowerCase().replace(/\s+/g, "-");
 
-  console.log(appCreate);
+  const appCreate = await AppCreate.create({
+    userId,
+    appName,
+    slug,
+    code,
+  });
 
-  const res = NextResponse.json({
+  console.log("created", appCreate);
+
+  return NextResponse.json({
     success: true,
     message: "App created",
   });
-
-  return res;
 }
 
 export async function GET() {

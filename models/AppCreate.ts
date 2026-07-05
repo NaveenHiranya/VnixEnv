@@ -11,6 +11,7 @@ const appCreateSchema = new mongoose.Schema(
       type: String,
       default: "Untitled",
     },
+    slug: { type: String, required: true },
     code: {
         type: String,
         default: "empty html file"

@@ -31,7 +31,7 @@ export default function Home() {
   }, []);
 
   const formatId = (name: string) =>
-    "/" + name.toLowerCase().replace(/\s+/g, "-");
+    "/store/" + name.toLowerCase().replace(/\s+/g, "-");
 
   return (
     <div className="h-screen">
