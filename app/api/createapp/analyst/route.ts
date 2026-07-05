@@ -7,9 +7,10 @@ const client = new OpenAI({
 
 const DEFAULT_RESPONSE = {
   isDev: false,
+  message:
+    "Sorry, I couldn't process your request. I can answer general questions and help generate HTML, CSS, and JavaScript web applications.",
   appName: "",
-  appDescription:
-    "I can help only with HTML, CSS, and JavaScript web application development.",
+  appDescription: "",
   features: [],
   pages: [],
   components: [],
@@ -44,64 +45,19 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-You are an experienced Business Analyst for a website generator.
+You are an AI assistant for a browser-based web application generator.
 
-Your job is to analyze the user's request and determine whether it is asking to build a website or web application using ONLY HTML, CSS, and JavaScript.
+Your primary purpose is to help users create web applications using ONLY HTML, CSS, and JavaScript.
 
 Return ONLY valid JSON.
 
 Response format:
 
 {
-  "isDev": boolean,
-  "appName": "string",
-  "appDescription": "string",
-  "features": [
-    "Feature 1",
-    "Feature 2"
-  ],
-  "pages": [
-    "Home",
-    "About",
-    "Contact"
-  ],
-  "components": [
-    "Navbar",
-    "Hero Section",
-    "Footer"
-  ],
-  "uiSuggestions": [
-    "Modern responsive layout",
-    "Sticky navigation",
-    "Rounded cards"
-  ],
-  "technicalNotes": [
-    "Use HTML, CSS and JavaScript only.",
-    "Responsive design.",
-    "Semantic HTML.",
-    "Use Flexbox/Grid.",
-    "Use LocalStorage if data persistence is needed."
-  ]
-}
-
-Rules:
-
-1. If the request is about building a website or web application:
-- Set isDev to true.
-- Generate a suitable appName.
-- Write a concise appDescription.
-- List all important features.
-- Suggest required pages.
-- Suggest reusable UI components.
-- Suggest UI improvements.
-- technicalNotes MUST ONLY contain notes relevant to HTML, CSS and JavaScript.
-
-2. If the request is NOT about software/web development, return EXACTLY:
-
-{
-  "isDev": false,
+  "isDev": true,
+  "message": "",
   "appName": "",
-  "appDescription": "I can help only with HTML, CSS, and JavaScript web application development.",
+  "appDescription": "",
   "features": [],
   "pages": [],
   "components": [],
@@ -109,15 +65,38 @@ Rules:
   "technicalNotes": []
 }
 
-Important Rules:
-- Return ONLY JSON.
-- No markdown.
+Rules
+
+1. Determine whether the user's request is asking for a website or web application.
+
+2. If YES:
+- Set "isDev" to true.
+- Set "message" to an empty string.
+- Generate:
+  - appName
+  - appDescription
+  - features
+  - pages
+  - components
+  - uiSuggestions
+  - technicalNotes
+- Assume the project must be built using ONLY HTML, CSS, and JavaScript.
+- Never mention React, Next.js, Vue, Angular, backend technologies, databases, APIs, servers, or authentication services.
+
+3. If NO:
+- Set "isDev" to false.
+- Answer the user's question naturally in the "message" field.
+- After answering, politely explain that this AI specializes in generating HTML, CSS, and JavaScript web applications.
+- Invite the user to describe the application they want to build.
+- Leave every other field empty.
+
+Output Rules:
+- Return ONLY valid JSON.
+- No Markdown.
+- No code fences.
 - No explanations.
 - No extra keys.
-- Always produce valid JSON.
-- Never mention React, Next.js, Vue, Angular, Node.js, Express, PHP, Python, Java, databases, backend, or APIs.
-- Assume every project is a static website or client-side web application.
-          `.trim(),
+`.trim(),
         },
         {
           role: "user",
@@ -126,17 +105,20 @@ Important Rules:
       ],
     });
 
-    const raw = response.choices?.[0]?.message?.content ?? "";
+    const raw = response.choices[0]?.message?.content ?? "";
+
     const parsed = safeParseJSON(raw);
 
-    if (!parsed || parsed.isDev !== true) {
+    if (!parsed) {
       return Response.json(DEFAULT_RESPONSE);
     }
 
     return Response.json({
-      isDev: true,
+      isDev: parsed.isDev === true,
+      message:
+        typeof parsed.message === "string" ? parsed.message : "",
       appName:
-        typeof parsed.appName === "string" ? parsed.appName : "Untitled App",
+        typeof parsed.appName === "string" ? parsed.appName : "",
       appDescription:
         typeof parsed.appDescription === "string"
           ? parsed.appDescription

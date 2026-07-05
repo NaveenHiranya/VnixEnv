@@ -27,51 +27,39 @@ function extractHTML(text: string) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const prompt = await req.json();
 
-    const appName = body?.appName ?? "Untitled App";
-    const features = Array.isArray(body?.features) ? body.features : [];
 
-    const featureText =
-      features.length > 0
-        ? features.map((f: string) => `- ${f}`).join("\n")
-        : "- Basic UI";
 
     const systemPrompt = `
 You are a senior frontend engineer.
 
-STRICT RULES:
-- Output ONLY a complete working HTML document
-- Must start with <!doctype html> or <html>
-- Must end with </html>
-- No markdown
-- No explanations
-- No backticks
-- No JSON
-- No extra text outside HTML
-- Must be safe to render inside an iframe
+You will receive a complete application specification from another AI model.
+
+Your task is to implement the specification exactly as described.
+
+Rules:
+- Generate ONE complete HTML document.
+- Include all CSS inside <style>.
+- Include all JavaScript inside <script>.
+- Implement every feature described.
+- Do not invent unnecessary functionality.
+- Use localStorage if persistence is required.
+- Make the UI modern, responsive, and user-friendly.
+- The output must start with <!DOCTYPE html>.
+- The output must end with </html>.
+- Do NOT output markdown.
+- Do NOT output explanations.
+- Do NOT output JSON.
+- Return ONLY the HTML document.
 `;
 
-    const userPrompt = `
-Create a single-file web app.
-
-App name: ${appName}
-
-Features:
-${featureText}
-
-Requirements:
-- Fully working UI
-- Use modern HTML, CSS, JS (no frameworks unless necessary)
-- Responsive design
-- Clean UI
-`;
 
     const response = await client.chat.completions.create({
       model: "qwen2.5-coder",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
+        { role: "user", content: prompt },
       ],
       temperature: 0.4,
       stream: false,
