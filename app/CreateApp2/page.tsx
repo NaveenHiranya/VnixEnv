@@ -112,6 +112,52 @@ export default function Home() {
     }
   };
 
+  const installApp = async () => {
+    try {
+      setLoading(true);
+      setState("Installing....")
+
+      const res = await fetch("/api/appcreate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: "12345",
+          appName: appData?.appName,
+          code: generatedCode,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setState(data.message || "Error Installing app");
+        // alert(data.message || "Error creating app");
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", message: "Error Installing application" },
+        ]);
+        return;
+      }
+
+      setState(data.message); // "App created"
+      setMessages((prev) => [
+          ...prev,
+          { role: "assistant", message: data.message },
+        ]);
+      console.log("Saved:", data);
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [
+          ...prev,
+          { role: "assistant", message: "Something went wrong" },
+        ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const codeGenerator = async (prompt: String) => {
     setLoading(true);
     setGenerated(true);
@@ -325,7 +371,7 @@ const handleSubmit = async () => {
 
             {generated &&  generatedCode && (<div className="bg-neutral-600 flex gap-4 items-center p-3 rounded-2xl">
               <p>After Installing application It will appear in home screen draft list</p>
-              <button className="bg-green-400 text-white font-bold p-1 px-3 rounded-xl cursor-pointer">Install</button>
+              <button onClick={installApp} className="bg-green-400 text-white font-bold p-1 px-3 rounded-xl cursor-pointer">Install</button>
             </div>)}
 
 

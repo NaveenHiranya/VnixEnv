@@ -27,3 +27,11 @@ export async function POST(req: Request) {
 
   return res;
 }
+
+export async function GET() {
+  await connectDB();
+
+  const apps = await AppCreate.find({});
+
+  return NextResponse.json(apps);
+}
