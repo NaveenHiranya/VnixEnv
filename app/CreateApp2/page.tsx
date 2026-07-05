@@ -13,6 +13,7 @@ interface AppData {
   isDev: boolean;
   appName: string;
   appDescription: string;
+  message: string;
   features: string[];
   pages: string[];
   components: string[];
@@ -35,7 +36,7 @@ export default function Home() {
 
   const [generatedCode, setGeneratedCode] = useState<string>("");
   const [generated, setGenerated] = useState(false);
-
+  const [formOn, setFormOn] = useState(false);
   const [appData, setAppData] = useState<AppData | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,16 +85,13 @@ export default function Home() {
         // setState("Objective: " + data.message);
         console.log(app);
         setAppData(app);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", message: app.appDescription },
-        ]);
+        setFormOn(true);
 
         setLoading(false);
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", message: app.appDescription },
+          { role: "assistant", message: app.message },
         ]);
 
         setState("Describe your application clearly...");
@@ -114,55 +112,56 @@ export default function Home() {
     }
   };
 
-  const appGenerator = async (prompt: string) => {
-    setLoading(true);
-    setState("Improving prompt...");
-    
-
+  const installApp = async () => {
     try {
-      const res = await fetch("/api/createapp/features", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+      setLoading(true);
+      setState("Installing....")
 
-      if (!res.ok) throw new Error("Request failed");
+      const res = await fetch("/api/appcreate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: "12345",
+          appName: appData?.appName,
+          code: generatedCode,
+        }),
+      });
 
       const data = await res.json();
 
-      if (data.isWebApplication) {
-        setState("Understanding application: " + data.shortDescription);
-        await codeGenerator(data);
-      } else {
+      if (!res.ok) {
+        setState(data.message || "Error Installing app");
+        // alert(data.message || "Error creating app");
         setMessages((prev) => [
+          ...prev,
+          { role: "assistant", message: "Error Installing application" },
+        ]);
+        return;
+      }
+
+      setState(data.message); // "App created"
+      setMessages((prev) => [
           ...prev,
           { role: "assistant", message: data.message },
         ]);
-
-        setState("This model supports only web applications yet.");
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error(err);
-
+      console.log("Saved:", data);
+    } catch (error) {
+      console.error(error);
       setMessages((prev) => [
-        ...prev,
-        { role: "assistant", message: "Something went wrong." },
-      ]);
-
-      setState("Error: feature model failed.");
+          ...prev,
+          { role: "assistant", message: "Something went wrong" },
+        ]);
+    } finally {
       setLoading(false);
     }
   };
 
-  const codeGenerator = async (prompt: {
-    isWebApplication: boolean;
-    appName: string;
-    features: string;
-  }) => {
+  const codeGenerator = async (prompt: String) => {
     setLoading(true);
     setGenerated(true);
-    setState("Developing: " + prompt.appName);
+    setState("Developing application");
 
     try {
       const res = await fetch("/api/createapp/creator", {
@@ -230,10 +229,11 @@ ${data.technicalNotes.map((t) => `- ${t}`).join("\n")}
 
 const handleSubmit = async () => {
   if (!appData) return;
+  setFormOn(false);
 
   const prompt = buildPrompt(appData);
 
-  appGenerator(prompt);
+  codeGenerator(prompt);
 };
 
   return (
@@ -267,15 +267,8 @@ const handleSubmit = async () => {
               </div>
             ))}
 
-            {/* Loading indicator */}
-            {loading && (
-              <div className="ml-2 flex items-center gap-2 text-white">
-                <Image alt="loading" width={20} height={20} src={loadingSvg} />
-                <span className="text-sm text-neutral-300">{state}</span>
-              </div>
-            )}
 
-            <div className="text-white">
+            <div className={`${formOn ? "static": "hidden"} text-white bg-neutral-800 p-4 rounded-2xl`}>
               {appData && (
                 <>
                   <p className="font-bold text-xl">Name:</p>
@@ -339,7 +332,7 @@ const handleSubmit = async () => {
                     }
                   />
 
-                  <button onClick={handleSubmit} className="border p-1 px-2 rounded-xl bg-green-500">Submit</button>
+                  <button onClick={handleSubmit} disabled={!generated && loading} className={`font-bold p-2 px-3 cursor-pointer rounded-xl bg-green-600 ${loading || generated ? "hidden": ""}`}>Submit</button>
                 </>
               )}
             </div>
@@ -367,6 +360,21 @@ const handleSubmit = async () => {
                 />
               </div>
             )}
+
+            {/* Loading indicator */}
+            {loading  && (
+              <div className="ml-2 flex items-center gap-2 text-white">
+                <Image alt="loading" width={20} height={20} src={loadingSvg} />
+                <span className="text-sm text-neutral-300">{state}</span>
+              </div>
+            )}
+
+            {generated &&  generatedCode && (<div className="bg-neutral-600 flex gap-4 items-center p-3 rounded-2xl">
+              <p>After Installing application It will appear in home screen draft list</p>
+              <button onClick={installApp} className="bg-green-400 text-white font-bold p-1 px-3 rounded-xl cursor-pointer">Install</button>
+            </div>)}
+
+
           </div>
         )}
       </main>

@@ -59,6 +59,46 @@ export default function doc() {
             After the application is developed, it can be stored for the user
             and displayed on the home screen as a draft.
           </p>
+          <p className="border rounded-2xl p-3">Process explain:</p>
+          <p>
+            After Enter the prompt in input field.it sends user input to{" "}
+            <span className="text-red-500"> sendMessage() </span> function. then
+            this function send prompt to{" "}
+            <span className="text-green-500">"/api/createapp/analyst"</span> and
+            get return from it. if it is related to development process this
+            functionality continue the process using{" "}
+            <span className="text-red-500">setAppData(app);</span> variable
+            render a form to help to user what is going to build. In this
+            process user can add, remove and change features using this form.
+            after submit the form it returns to{" "}
+            <span className="text-red-500">handleSubmit() </span>function and
+            this function send prompt to{" "}
+            <span className="text-red-500">appGenerator(prompt); </span>
+            function. This function send prompt to{" "}
+            <span className="text-green-500">"/api/createapp/features"</span>
+            and it checks agin is this application{" "}
+            <span className="text-blue-500"> isWebApplication </span>
+            if it is related to web applcation it sends prompt to{" "}
+            <span className="text-red-500">codeGenerator(data) </span>
+            fuction and this function send appGenerator functions output to{" "}
+            <span className="text-green-500">"/api/createapp/creator" </span>
+            and after this output using{" "}
+            <span className="text-red-500">setGeneratedCode(html) </span>{" "}
+            variable render the created application
+          </p>
+          <p className="text-xl text-green-500">"/api/createapp/analyst"</p>
+          <p>
+            const DEFAULT_RESPONSE = <br></br>
+            isDev: false,<br></br>
+            appName: "",<br></br>
+            appDescription:<br></br>
+            "I can help only with HTML, CSS, and JavaScript web application
+            development.", features: [],<br></br>
+            pages: [],<br></br>
+            components: [],<br></br>
+            uiSuggestions: [],<br></br>
+            technicalNotes: [],<br></br>
+          </p>
           <div className="flex items-center gap-1 font-bold p-4 my-4 rounded-2xl">
             <Image src={warning} alt="warning" width={35}></Image>
             <p>Under Development process</p>
