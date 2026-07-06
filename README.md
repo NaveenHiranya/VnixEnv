@@ -1,103 +1,64 @@
-# 🤖 AI Chat Application
+# 🚀 Web Application Generator
 
-A modern **multi-model AI chat application** built with **Next.js**, **React**, **TypeScript**, and **MongoDB**.
+![AI](https://img.shields.io/badge/AI-Powered-blue)
+![MongoDB](https://img.shields.io/badge/Database-MongoDB-green)
+![Ollama](https://img.shields.io/badge/LLM-Ollama-black)
+![Next.js](https://img.shields.io/badge/Frontend-Next.js-lightgrey)
 
-This project explores how modern AI-powered applications are built using AI APIs. What started as a simple chatbot evolved into a multi-model AI chat application with authentication, persistent chat history, and a clean user experience.
+A **basic AI-powered web application generator** that creates full web applications from natural language prompts.
 
----
-
-## 🚀 ALoHa V1
-
-### 📌 Features
-
-* 🤖 Multi-model support
-* 💬 Modern chat interface
-* 📜 Chat history
-* ➕ Create new chats
-* 👍 Like & 👎 Dislike responses
-* 📋 One-click copy responses
-* 🔑 Basic Email & Password Sign In / Sign Up
-* 🎨 Clean and responsive UI
-* Logout Option
+It uses **MongoDB** for storage and **Ollama (Qwen2.5-Coder)** as the LLM for generating application code.
 
 ---
 
-## 📸 Project Screenshot
+## ✨ Features
 
-![Home](./assests/home.png)
+- 🧠 Generate web applications from prompts
+- ⚙️ AI code generation using **Qwen2.5-Coder**
+- 🗄️ Store generated apps in **MongoDB**
+- 📦 Install generated applications instantly
+- 🏠 View all installed apps on the home dashboard
+- 🔄 Full flow: Prompt → Generate → Install → Display
+
+---
+
+## 🧠 How It Works
+
+1. User enters a prompt (e.g. *"create a blog app with authentication"*).
+2. Prompt is sent to **Ollama LLM (Qwen2.5-Coder)**.
+3. The model generates a full application structure.
+4. Application is saved into **MongoDB**.
+5. User installs the generated application.
+6. Installed applications appear on the home page.
 
 ---
 
 ## 🛠️ Tech Stack
 
-* Next.js
-* React
-* TypeScript
-* MongoDB
-* Mongoose
-* NVIDIA AI APIs
+| Layer      | Technology |
+|------------|------------|
+| Frontend   | Next.js (TypeScript / TSX) |
+| Backend    | Node.js API Routes |
+| Database   | MongoDB |
+| AI Engine  | Ollama |
+| Model      | Qwen2.5-Coder |
 
 ---
 
-## 🚀 Getting Started
-
-### Clone the repository
+## 📦 Installation
 
 ```bash
-git clone https://github.com/NaveenHiranya/ai-chat-agent.git
-cd ai-chat-agent
-```
+# Clone repository
+git clone <your-repo-url>
 
-### Install dependencies
+# Move into project
+cd your-project
 
-```bash
+# Install dependencies
 npm install
-```
 
-### Create a `.env.local` file
-
-```env
-MONGODB_URI=your_mongodb_connection_string
-NVIDIA_API_KEY=your_nvidia_api_key
-```
-
-### Run the development server
-
-```bash
+# Run development server
 npm run dev
-```
-
-Open **http://localhost:3000** in your browser.
-
----
-
-## 💡 About
-
-This project was created to explore AI integration in modern web applications.
-
-A special thanks to NVIDIA for providing access to 70+ AI models through its API platform, making it easier for developers to experiment with multi-model AI applications.
-
----
-
-## 🔮 Future Improvements
-
-* Image generation support
-* Streaming AI responses
-* Voice chat
-* File upload support
-* Theme customization
-* Search chat history
-
----
-
-## 🤝 Contributing
-
-Contributions, suggestions, and feedback are always welcome.
-
-Feel free to fork this repository and create a pull request.
-
----
-
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.

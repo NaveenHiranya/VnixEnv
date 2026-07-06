@@ -6,6 +6,21 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import loadingSvg from "@/public/circle-fade2.svg";
 import Image from "next/image";
+import Header from "../components/header";
+import ArrayEditor from "../components/ArrayEditor";
+import Link from "next/link";
+
+interface AppData {
+  isDev: boolean;
+  appName: string;
+  appDescription: string;
+  message: string;
+  features: string[];
+  pages: string[];
+  components: string[];
+  uiSuggestions: string[];
+  technicalNotes: string[];
+}
 
 type Message = {
   role: "user" | "assistant";
@@ -22,6 +37,10 @@ export default function Home() {
 
   const [generatedCode, setGeneratedCode] = useState<string>("");
   const [generated, setGenerated] = useState(false);
+  const [formOn, setFormOn] = useState(false);
+  const [appData, setAppData] = useState<AppData | null>(null);
+  
+  const [installed, setInstalled] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,17 +67,14 @@ export default function Home() {
     setLoading(true);
     setState("Sending...");
 
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", message: currentPrompt },
-    ]);
+    setMessages((prev) => [...prev, { role: "user", message: currentPrompt }]);
 
     setPrompt("");
 
     try {
       setState("Understanding content...");
 
-      const res = await fetch("/api/createapp/identifier", {
+      const res = await fetch("/api/createapp/analyst", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: currentPrompt }),
@@ -66,15 +82,19 @@ export default function Home() {
 
       if (!res.ok) throw new Error("Request failed");
 
-      const data = await res.json();
+      const app = await res.json();
 
-      if (data.isProgram) {
-        setState("Objective: " + data.message);
-        await appGenerator(currentPrompt);
+      if (app.isDev) {
+        // setState("Objective: " + data.message);
+        console.log(app);
+        setAppData(app);
+        setFormOn(true);
+
+        setLoading(false);
       } else {
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", message: data.message },
+          { role: "assistant", message: app.message },
         ]);
 
         setState("Describe your application clearly...");
@@ -95,54 +115,57 @@ export default function Home() {
     }
   };
 
-  const appGenerator = async (prompt: string) => {
-    setLoading(true);
-    setState("Improving prompt...");
-
+  const installApp = async () => {
     try {
-      const res = await fetch("/api/createapp/features", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
-      });
+      setLoading(true);
+      setState("Installing....")
 
-      if (!res.ok) throw new Error("Request failed");
+      const res = await fetch("/api/appcreate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: "12345",
+          appName: appData?.appName,
+          code: generatedCode,
+        }),
+      });
 
       const data = await res.json();
 
-      if (data.isWebApplication) {
-        setState("Understanding application: " + data.shortDescription);
-        await codeGenerator(data);
-      } else {
+      if (!res.ok) {
+        setState(data.message || "Error Installing app");
+        // alert(data.message || "Error creating app");
         setMessages((prev) => [
+          ...prev,
+          { role: "assistant", message: "Error Installing application" },
+        ]);
+        return;
+      }
+
+      setState(data.message); // "App created"
+      setInstalled(true);
+      setMessages((prev) => [
           ...prev,
           { role: "assistant", message: data.message },
         ]);
-
-        setState("This model supports only web applications yet.");
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error(err);
-
+      console.log("Saved:", data);
+    } catch (error) {
+      console.error(error);
       setMessages((prev) => [
-        ...prev,
-        { role: "assistant", message: "Something went wrong." },
-      ]);
-
-      setState("Error: feature model failed.");
+          ...prev,
+          { role: "assistant", message: "Something went wrong" },
+        ]);
+    } finally {
       setLoading(false);
     }
   };
 
-  const codeGenerator = async (prompt: {
-    isWebApplication: boolean;
-    appName: string;
-    features: string;
-  }) => {
+  const codeGenerator = async (prompt: String) => {
     setLoading(true);
     setGenerated(true);
-    setState("Developing: " + prompt.appName);
+    setState("Developing application");
 
     try {
       const res = await fetch("/api/createapp/creator", {
@@ -183,17 +206,48 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="border border-white w-full h-screen flex flex-col text-white">
-      <header className="shrink-0 p-4 border-b border-neutral-800 bg-neutral-900">
-        <h1 className="text-xl font-bold">ALoHa</h1>
-      </header>
+  function buildPrompt(data: AppData) {
+    return `
+Application Name:
+${data.appName}
 
+Description:
+${data.appDescription}
+
+Features:
+${data.features.map((f) => `- ${f}`).join("\n")}
+
+Pages:
+${data.pages.map((p) => `- ${p}`).join("\n")}
+
+Components:
+${data.components.map((c) => `- ${c}`).join("\n")}
+
+UI Suggestions:
+${data.uiSuggestions.map((u) => `- ${u}`).join("\n")}
+
+Technical Notes:
+${data.technicalNotes.map((t) => `- ${t}`).join("\n")}
+`.trim();
+  }
+
+const handleSubmit = async () => {
+  if (!appData) return;
+  setFormOn(false);
+
+  const prompt = buildPrompt(appData);
+
+  codeGenerator(prompt);
+};
+
+  return (
+    <div className="w-full h-screen flex flex-col text-white bg-linear-to-br from-black to-blue-900">
+      <Header />
       <main className="flex-1 flex flex-col overflow-hidden">
         {messages.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center">
-            <h2 className="text-2xl text-neutral-500">
-              I'm here to help you create your application...
+          <div className="flex-1 flex items-center justify-center relative">
+            <h2 className="text-2xl text-neutral-100">
+              Lets build your application !
             </h2>
           </div>
         ) : (
@@ -207,9 +261,7 @@ export default function Home() {
               >
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    m.role === "user"
-                      ? "bg-blue-600"
-                      : "bg-neutral-800"
+                    m.role === "user" ? "bg-blue-600" : "bg-neutral-800"
                   }`}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -219,18 +271,75 @@ export default function Home() {
               </div>
             ))}
 
-            {/* Loading indicator */}
-            {loading && (
-              <div className="ml-2 flex items-center gap-2 text-white">
-                <Image
-                  alt="loading"
-                  width={20}
-                  height={20}
-                  src={loadingSvg}
-                />
-                <span className="text-sm text-neutral-300">{state}</span>
-              </div>
-            )}
+
+            <div className={`${formOn ? "static": "hidden"} text-white bg-neutral-800 p-4 rounded-2xl`}>
+              {appData && (
+                <>
+                  <p className="font-bold text-xl">Name:</p>
+                  <input
+                    className="border my-1 p-2 rounded-2xl"
+                    value={appData.appName}
+                    onChange={(e) =>
+                      setAppData({
+                        ...appData,
+                        appName: e.target.value,
+                      })
+                    }
+                  />
+                  <p className="font-bold text-xl">Description</p>
+                  <textarea
+                    className="w-full outline-none border rounded-2xl p-2"
+                    value={appData.appDescription}
+                    onChange={(e) =>
+                      setAppData({
+                        ...appData,
+                        appDescription: e.target.value,
+                      })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="Features"
+                    items={appData.features}
+                    onChange={(features) =>
+                      setAppData({ ...appData, features })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="Pages"
+                    items={appData.pages}
+                    onChange={(pages) => setAppData({ ...appData, pages })}
+                  />
+
+                  <ArrayEditor
+                    title="Components"
+                    items={appData.components}
+                    onChange={(components) =>
+                      setAppData({ ...appData, components })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="UI Suggestions"
+                    items={appData.uiSuggestions}
+                    onChange={(uiSuggestions) =>
+                      setAppData({ ...appData, uiSuggestions })
+                    }
+                  />
+
+                  <ArrayEditor
+                    title="Technical Notes"
+                    items={appData.technicalNotes}
+                    onChange={(technicalNotes) =>
+                      setAppData({ ...appData, technicalNotes })
+                    }
+                  />
+
+                  <button onClick={handleSubmit} disabled={!generated && loading} className={`font-bold p-2 px-3 cursor-pointer rounded-xl bg-green-600 ${loading || generated ? "hidden": ""}`}>Submit</button>
+                </>
+              )}
+            </div>
 
             {/* PREVIEW PANEL (IMPROVED IFRAME) */}
             {generated && generatedCode && (
@@ -255,13 +364,31 @@ export default function Home() {
                 />
               </div>
             )}
+
+            {/* Loading indicator */}
+            {loading  && (
+              <div className="ml-2 flex items-center gap-2 text-white">
+                <Image alt="loading" width={20} height={20} src={loadingSvg} />
+                <span className="text-sm text-neutral-300">{state}</span>
+              </div>
+            )}
+
+            {generated &&  generatedCode && (<div className="bg-neutral-600 flex gap-4 items-center p-3 rounded-2xl">
+              <p>After Installing application It will appear in home screen draft list</p>
+              <button onClick={installApp} className="bg-green-400 text-white font-bold p-1 px-3 rounded-xl cursor-pointer">{installed ? "Installed": "Install"}</button>
+              <Link href="/home" className={`bg-green-400 text-white font-bold p-1 px-3 rounded-xl cursor-pointer ${installed ? "": "hidden"}`}>GoToHome</Link>
+            </div>)}
+
+
+
+
           </div>
         )}
       </main>
 
       {/* INPUT */}
       <div className="shrink-0 m-3">
-        <div className="flex bg-neutral-800 rounded-3xl p-2 border border-neutral-700">
+        <div className="flex bg-neutral-900 rounded-3xl p-2 border border-neutral-700">
           <textarea
             ref={textareaRef}
             rows={1}
